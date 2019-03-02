@@ -1,0 +1,3 @@
+[submodule "submodules/testy-mctest-face"]
+	path = submodules/testy-mctest-face
+	url = https://github.com/gmbeard/testy-mctest-face.git
