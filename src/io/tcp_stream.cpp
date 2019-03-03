@@ -7,11 +7,15 @@
 using namespace twister::io;
 
 TcpStream::TcpStream() noexcept :
-    socket_(-1)
+    socket_ { -1 }
+{ }
+
+TcpStream::TcpStream(int os_socket) noexcept :
+    socket_ { os_socket }
 { }
 
 TcpStream::TcpStream(TcpStream&& other) noexcept :
-    socket_(other.socket_)
+    socket_ { other.socket_ }
 {
     other.socket_ = -1;
 }

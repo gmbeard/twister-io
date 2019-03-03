@@ -27,7 +27,7 @@ EventLoop::~EventLoop() {
     ::close(os_event_loop_);
 }
 
-EventLoop& twister::get_current_event_loop() noexcept {
+EventLoop& twister::current_event_loop() noexcept {
     assert(current_event_loop_ptr &&
            "current_event_loop_ptr == nullptr");
     return *current_event_loop_ptr;
@@ -68,4 +68,39 @@ void EventLoop::run_() {
                 }
             });
     }
+}
+
+void EventLoop::notify_(int fd, NotifyEvent event, tasks::TaskId id) {
+    epoll_event data = { };
+    data.events = EPOLLET | EPOLLONESHOT;
+    switch (event) {
+        case NotifyEvent::Read:
+            data.events |= EPOLLIN;
+            break;
+        case NotifyEvent::Write:
+            data.events |= EPOLLOUT;
+            break;
+    }
+
+    data.data.u64 = id.value();
+    int err = ::epoll_ctl(os_event_loop_,
+                          EPOLL_CTL_MOD,
+                          fd,
+                          &data);
+
+    if (0 > err && errno == ENOENT) {
+        err = ::epoll_ctl(os_event_loop_,
+                          EPOLL_CTL_ADD,
+                          fd,
+                          &data);
+    }
+
+    if (0 > err) {
+        throw std::system_error { (int)errno, std::system_category() };
+    }
+}
+
+void twister::notify(NotifyEvent event, int fd) {
+    tasks::TaskId id = tasks::current_task_id;
+    current_event_loop().notify_(fd, event, id);
 }

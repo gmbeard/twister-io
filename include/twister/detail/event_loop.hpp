@@ -37,7 +37,7 @@ void twister::spawn(T&& task) {
     });
 
     if (result) {
-        get_current_event_loop().enqueue_task(
+        current_event_loop().enqueue_task(
             tasks::TaskProxy { std::forward<T>(task) },
             new_task_id
         );

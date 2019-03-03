@@ -8,6 +8,7 @@ namespace twister::io {
 
 struct TcpStream {
     TcpStream() noexcept;
+    explicit TcpStream(int os_socket) noexcept;
     TcpStream(TcpStream&&) noexcept;
     ~TcpStream();
     TcpStream& operator=(TcpStream&&) noexcept;

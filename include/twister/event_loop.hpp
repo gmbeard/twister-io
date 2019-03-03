@@ -8,6 +8,11 @@
 
 namespace twister {
 
+enum class NotifyEvent {
+    Read,
+    Write
+};
+
 struct EventLoop {
     EventLoop();
     ~EventLoop();
@@ -20,9 +25,13 @@ struct EventLoop {
     template<tasks::concepts::AsyncTask T>
     friend void spawn(T&&);
 
+    friend void notify(NotifyEvent, int);
+
 private:
     void enqueue_task(tasks::TaskProxy&&,
                       tasks::TaskId id = tasks::TaskId { });
+
+    void notify_(int fd, NotifyEvent event, tasks::TaskId id);
     void run_();
 
 private:
@@ -31,10 +40,12 @@ private:
 };
 
 EventLoop* current_event_loop_ptr = nullptr;
-EventLoop& get_current_event_loop() noexcept;
+EventLoop& current_event_loop() noexcept;
 
 template<tasks::concepts::AsyncTask T>
 void spawn(T&&);
+
+void notify(NotifyEvent event, int fd);
 
 }
 

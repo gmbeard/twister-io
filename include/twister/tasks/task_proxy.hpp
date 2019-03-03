@@ -7,8 +7,15 @@
 
 namespace twister::tasks {
 
+struct TaskProxy;
+
+template<typename T>
+concept bool ProxyableTask = 
+    concepts::AsyncTask<T> && 
+    !std::is_same_v<std::decay_t<T>, TaskProxy>;
+
 struct TaskProxy {
-    template<concepts::AsyncTask F>
+    template<ProxyableTask F>
     explicit TaskProxy(F&& inner) :
         inner_ { 
             std::make_unique<Model<std::decay_t<F>>>(
@@ -19,12 +26,10 @@ struct TaskProxy {
     bool poll();
 
     // NOTE: When TaskProxy is used as the type for 
-    // a std::map, and operator() is defined, TGCC 8.1 
+    // a std::map, and operator() is defined, GCC 8.1 
     // generates an ICE!!
     //
-//    auto operator()() -> bool {
-//        return inner_->call();
-//    }
+//    auto operator()() -> bool;
 
 private:
     struct Interface {
@@ -32,7 +37,7 @@ private:
         virtual auto call() -> bool = 0;
     };
 
-    template<concepts::AsyncTask F>
+    template<ProxyableTask F>
     struct Model : Interface {
         explicit Model(F&& inner) :
             inner_ { std::forward<F>(inner) }
