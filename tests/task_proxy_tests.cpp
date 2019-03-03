@@ -8,6 +8,6 @@ McTest(should_construct_task_proxy) {
         return called;
     }};
 
-    proxy();
+    proxy.poll();
     Expect(called);
 }

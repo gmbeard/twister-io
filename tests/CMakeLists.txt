@@ -1,3 +1,12 @@
+include(Testy OPTIONAL RESULT_VARIABLE Testy_INCLUDED)
+if(Testy_INCLUDED STREQUAL "NOTFOUND")
+    message(
+        FATAL_ERROR
+        "Couldn't locate Testy library. Maybe you forgot to "
+        "call `git submodule update`"
+    )
+endif()
+
 add_executable(
     twister_tests
     test_main.cpp
