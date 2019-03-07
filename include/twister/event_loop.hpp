@@ -39,7 +39,7 @@ private:
     std::map<twister::tasks::TaskId, tasks::TaskProxy> task_queue_;
 };
 
-EventLoop* current_event_loop_ptr = nullptr;
+extern EventLoop* current_event_loop_ptr;
 EventLoop& current_event_loop() noexcept;
 
 template<tasks::concepts::AsyncTask T>

@@ -1,6 +1,8 @@
 #include "twister/io/tcp_stream.hpp"
+#include "twister/event_loop.hpp"
 #include <utility>
 #include <unistd.h>
+#include <system_error>
 
 #define UNUSED(var) (void)(var)
 
@@ -36,19 +38,31 @@ TcpStream& TcpStream::operator=(TcpStream&& rhs) noexcept {
 }
 
 bool TcpStream::read(uint8_t* buffer, size_t len, size_t& read) {
-    UNUSED(buffer);
-    UNUSED(len);
-    UNUSED(read);
+    auto s = ::read(socket_, buffer, len);
+    if (0 > s) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            twister::notify(twister::NotifyEvent::Read, socket_);
+            return false;
+        }
+        throw std::system_error { (int)errno, std::system_category() };
+    }
 
-    return false;
+    read = s;
+    return true;
 }
 
 bool TcpStream::write(uint8_t const* buffer, size_t len, size_t& written) {
-    UNUSED(buffer);
-    UNUSED(len);
-    UNUSED(written);
+    auto s = ::write(socket_, buffer, len);
+    if (0 > s) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            twister::notify(twister::NotifyEvent::Write, socket_);
+            return false;
+        }
+        throw std::system_error { (int)errno, std::system_category() };
+    }
 
-    return false;
+    written = s;
+    return true;
 }
 
 TcpStream twister::io::os_socket_to_stream(int socket) noexcept {

@@ -157,7 +157,7 @@ TcpListener& TcpListener::operator=(TcpListener&& rhs) noexcept {
 
 bool TcpListener::accept(TcpStream& output_socket) {
     auto s = ::accept(socket_, nullptr, nullptr);
-    if (0 > s && errno != EWOULDBLOCK && errno != EAGAIN) {
+    if (0 > s) {
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
             twister::notify(twister::NotifyEvent::Read, socket_);
             return false;

@@ -23,16 +23,17 @@ private:
     TaskIdType value_;
 };
 
-TaskId current_task_id = TaskId(std::numeric_limits<TaskIdType>::max());
+extern TaskId current_task_id;
 
 template<tasks::concepts::AsyncTask T>
 auto with_task(TaskId id, T&& t) {
-    assert(
-        current_task_id.value() == std::numeric_limits<TaskIdType>::max() &&
-        "current_task_id has already been set!"); 
+//    assert(
+//        current_task_id.value() == std::numeric_limits<TaskIdType>::max() &&
+//        "current_task_id has already been set!"); 
+    auto previous_task = current_task_id;
     current_task_id = id;
-    auto reset_task_on_exit = scope_exit([] {
-        current_task_id = TaskId(std::numeric_limits<TaskIdType>::max());
+    auto reset_task_on_exit = scope_exit([=] {
+        current_task_id = previous_task;
     });
     return std::forward<T>(t)();
 }
