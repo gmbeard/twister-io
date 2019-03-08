@@ -80,7 +80,20 @@ int create_os_socket_from_ipv4_and_port(char const* address,
         throw std::system_error { (int)errno, std::system_category() };
     }
 
-    int err = ::fcntl(s, F_SETFL, O_NONBLOCK);
+    int reuse = 1;
+    int err = ::setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+    if (0 > err) {
+        throw std::system_error { (int)errno, std::system_category() };
+    }
+
+    int flags = ::fcntl(s, F_GETFL);
+    if (0 > flags) {
+        throw std::system_error { (int)errno, std::system_category() };
+    }
+
+    flags |= O_NONBLOCK;
+
+    err = ::fcntl(s, F_SETFL, flags);
     if (0 > err) {
         throw std::system_error { (int)errno, std::system_category() };
     }
@@ -162,6 +175,17 @@ bool TcpListener::accept(TcpStream& output_socket) {
             twister::notify(twister::NotifyEvent::Read, socket_);
             return false;
         }
+        throw std::system_error { (int)errno, std::system_category() };
+    }
+
+    int flags = ::fcntl(s, F_GETFL);
+    if (0 > flags) {
+        throw std::system_error { (int)errno, std::system_category() };
+    }
+
+    flags |= O_NONBLOCK;
+    int err = ::fcntl(s, F_SETFL, flags);
+    if (0 > err) {
         throw std::system_error { (int)errno, std::system_category() };
     }
 

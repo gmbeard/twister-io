@@ -21,12 +21,16 @@ struct EchoHandler {
     bool operator()() {
         while (true) {
             if (!bytes_to_write_) {
+                std::cerr << "# Reading... ";
                 if (!stream_.read(&buffer_[0], 
                                   buffer_.size(), 
                                   bytes_to_write_)) 
                 {
+                    std::cerr << "Not ready\n";
                     return false;
                 }
+
+                std::cerr << bytes_to_write_ << " bytes\n";
 
                 if (bytes_to_write_ == 0) {
                     break;
@@ -35,17 +39,21 @@ struct EchoHandler {
                 bytes_written_ = 0;
             }
             else {
+                std::cerr << "# Writing... ";
                 size_t written = 0;
                 if (!stream_.write(&buffer_[bytes_written_],
                                    bytes_to_write_ - bytes_written_,
                                    written))
                 {
+                    std::cerr << "Not ready\n";
                     return false;
                 }
 
                 if (written == 0) {
                     break;
                 }
+
+                std::cerr << written << "bytes\n";
 
                 bytes_written_ += written;
                 if (bytes_written_ == bytes_to_write_) {
