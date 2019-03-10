@@ -1,5 +1,7 @@
 #include "twister/event_loop.hpp"
 #include "twister/tasks/task_id.hpp"
+#include "twister/scope_exit.hpp"
+#include "twister/progress_guard.hpp"
 #include <system_error>
 #include <sys/epoll.h>
 #include <unistd.h>
@@ -15,10 +17,11 @@ size_t const kMaxEvents = 512;
 
 } // End anonymous
 
-EventLoop* twister::current_event_loop_ptr = nullptr;
+thread_local EventLoop* twister::current_event_loop_ptr = nullptr;
 
 EventLoop::EventLoop() :
     os_event_loop_ { ::epoll_create(kMaxEvents) }
+,   in_progress_ { 0 }
 {
     if (0 > os_event_loop_) {
         throw std::system_error { (int)errno, std::system_category() };
@@ -36,12 +39,22 @@ EventLoop& twister::current_event_loop() noexcept {
 }
 
 void EventLoop::enqueue_task(tasks::TaskProxy&& task, tasks::TaskId id) {
-    task_queue_.emplace(std::make_pair(id, std::move(task)));
+    task_queue_.enqueue(id, std::move(task));
 }
 
-void EventLoop::run_() {
+void EventLoop::try_poll_task(tasks::TaskId task_id) {
+    ProgressGuard progress_guard { in_progress_ };
+    if (auto task = task_queue_.try_dequeue(task_id); task) {
+        if (!with_task(task_id, [&] { return task->poll(); })) {
+            task_queue_.enqueue(task_id, std::move(*task));
+        }
+    }
+}
+
+void EventLoop::run() {
+    current_event_loop_ptr = this;
     std::vector<epoll_event> events(kMaxEvents);
-    while (task_queue_.size()) {
+    while (task_queue_.size() || in_progress_.load()) {
         int num_of_events = epoll_wait(os_event_loop_,
                                        &events[0],
                                        kMaxEvents,
@@ -55,19 +68,7 @@ void EventLoop::run_() {
             begin(events), 
             begin(events) + num_of_events, 
             [=](auto const& ev) {
-                tasks::TaskId id(ev.data.u32);
-                auto pos = task_queue_.find(id);
-
-                assert(pos != task_queue_.end() &&
-                       "Received event for non-existent task!");
-
-                bool result = with_task(id, [&] {
-                    return pos->second.poll();
-                });
-
-                if (result) {
-                    task_queue_.erase(pos);
-                }
+                try_poll_task(tasks::TaskId { ev.data.u32 });
             });
     }
 }

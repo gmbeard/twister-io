@@ -23,7 +23,7 @@ private:
     TaskIdType value_;
 };
 
-extern TaskId current_task_id;
+extern thread_local TaskId current_task_id;
 
 template<tasks::concepts::AsyncTask T>
 auto with_task(TaskId id, T&& t) {

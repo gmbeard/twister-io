@@ -12,7 +12,7 @@ uint32_t next_task_id() noexcept {
 
 } // End anonymous
 
-TaskId twister::tasks::current_task_id = 
+thread_local TaskId twister::tasks::current_task_id = 
     TaskId(std::numeric_limits<TaskIdType>::max());
 
 TaskId::TaskId() noexcept :

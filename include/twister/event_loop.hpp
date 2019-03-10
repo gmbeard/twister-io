@@ -4,7 +4,9 @@
 #include "twister/tasks/concepts.hpp"
 #include "twister/tasks/task_proxy.hpp"
 #include "twister/tasks/task_id.hpp"
+#include "twister/sync_task_queue.hpp"
 #include <map>
+#include <atomic>
 
 namespace twister {
 
@@ -21,6 +23,7 @@ struct EventLoop {
 
     template<tasks::concepts::AsyncTask T>
     void run(T&&);
+    void run();
 
     template<tasks::concepts::AsyncTask T>
     friend void spawn(T&&);
@@ -28,18 +31,20 @@ struct EventLoop {
     friend void notify(NotifyEvent, int);
 
 private:
+    void try_poll_task(tasks::TaskId task_id);
+
     void enqueue_task(tasks::TaskProxy&&,
                       tasks::TaskId id = tasks::TaskId { });
 
     void notify_(int fd, NotifyEvent event, tasks::TaskId id);
-    void run_();
 
 private:
     int os_event_loop_;
-    std::map<twister::tasks::TaskId, tasks::TaskProxy> task_queue_;
+    SyncTaskQueue task_queue_;
+    std::atomic_size_t in_progress_;
 };
 
-extern EventLoop* current_event_loop_ptr;
+extern thread_local EventLoop* current_event_loop_ptr;
 EventLoop& current_event_loop() noexcept;
 
 template<tasks::concepts::AsyncTask T>

@@ -23,7 +23,7 @@ void twister::EventLoop::run(T&& parent) {
     if (!result) {
         enqueue_task(tasks::TaskProxy { std::forward<T>(parent) },
                      parent_task_id);
-        run_();
+        run();
     }
 }
 
