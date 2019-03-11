@@ -44,7 +44,7 @@ private:
     std::atomic_size_t in_progress_;
 };
 
-extern thread_local EventLoop* current_event_loop_ptr;
+extern EventLoop* current_event_loop_ptr;
 EventLoop& current_event_loop() noexcept;
 
 template<tasks::concepts::AsyncTask T>

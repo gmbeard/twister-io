@@ -5,6 +5,7 @@
 #include <vector>
 #include <cinttypes>
 #include <iostream>
+#include <thread>
 
 #define UNUSED(arg) (void)(arg)
 
@@ -19,6 +20,7 @@ struct EchoHandler {
     }
 
     bool operator()() {
+        std::cerr << "Polling from " << std::this_thread::get_id() << "\n";
         while (true) {
             if (!bytes_to_write_) {
                 std::cerr << "# Reading... ";
@@ -74,6 +76,44 @@ private:
     twister::io::TcpStream stream_;
 };
 
+template<typename T>
+struct ThreadPool {
+    explicit ThreadPool(size_t num_of_threads, T&& inner) noexcept :
+        thread_count_ { num_of_threads }
+    ,   inner_ { std::move(inner) }
+    { }
+
+    bool operator()() {
+        if (!threads_.size()) {
+            twister::spawn([] { return false; });
+
+            for (size_t i = 0; i < thread_count_; ++i) {
+                threads_.emplace_back([] { 
+                    std::cerr << "Starting thread " <<
+                        std::this_thread::get_id() << "\n";
+                    twister::current_event_loop().run(); 
+                    std::cerr << "Ending thread " <<
+                        std::this_thread::get_id() << "\n";
+                });
+            }
+        }
+
+        return inner_();
+    }
+private:
+    size_t thread_count_;
+    T inner_;
+    std::vector<std::thread> threads_;
+};
+
+template<typename T>
+auto thread_pool(size_t thread_count, T&& inner) {
+    return ThreadPool<std::decay_t<T>> { 
+        thread_count,
+        std::forward<T>(inner)
+    };
+}
+
 int main(int argc, char const** argv) {
     UNUSED(argc);
     UNUSED(argv);
@@ -81,11 +121,14 @@ int main(int argc, char const** argv) {
     twister::io::TcpListener listener { "127.0.0.1", 8080 };
     twister::EventLoop loop;
     loop.run(
-        twister::io::acceptor(
-            std::move(listener),
-            [](auto&& stream) {
-                return EchoHandler { std::move(stream) };
-            }
+        thread_pool(
+            10,
+            twister::io::acceptor(
+                std::move(listener),
+                [](auto&& stream) {
+                    return EchoHandler { std::move(stream) };
+                }
+            )
         )
     );
 

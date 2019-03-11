@@ -17,7 +17,7 @@ size_t const kMaxEvents = 512;
 
 } // End anonymous
 
-thread_local EventLoop* twister::current_event_loop_ptr = nullptr;
+EventLoop* twister::current_event_loop_ptr = nullptr;
 
 EventLoop::EventLoop() :
     os_event_loop_ { ::epoll_create(kMaxEvents) }

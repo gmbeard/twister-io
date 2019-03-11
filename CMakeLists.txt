@@ -20,6 +20,7 @@ add_library(
     src/io/tcp_stream.cpp
     src/tasks/task_proxy.cpp
     src/tasks/task_id.cpp
+    src/progress_guard.cpp
 )
 
 target_include_directories(
