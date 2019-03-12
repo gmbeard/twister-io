@@ -8,7 +8,6 @@ namespace twister::tasks::concepts {
 template<typename T>
 concept bool AsyncTask = requires(T a) {
     { a() } -> bool;
-    T { std::declval<T>() };
 };
 
 }

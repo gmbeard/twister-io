@@ -15,7 +15,9 @@ list(
 add_library(
     twister
     src/event_loop.cpp
+    src/event_trigger.cpp
     src/sync_task_queue.cpp
+    src/sync_task_list.cpp
     src/io/tcp_listener.cpp
     src/io/tcp_stream.cpp
     src/tasks/task_proxy.cpp

@@ -25,17 +25,17 @@ TaskId::TaskId(TaskIdType value) noexcept :
 
 TaskIdType TaskId::value() const noexcept { return value_; }
 
-//bool twister::tasks::operator==(TaskId const& lhs,
-//                                TaskId const& rhs) noexcept
-//{
-//    return lhs.value_ == rhs.value_;
-//}
-//
-//bool twister::tasks::operator!=(TaskId const& lhs,
-//                                TaskId const& rhs) noexcept
-//{
-//    return !(lhs == rhs);
-//}
+bool twister::tasks::operator==(TaskId const& lhs,
+                                TaskId const& rhs) noexcept
+{
+    return lhs.value() == rhs.value();
+}
+
+bool twister::tasks::operator!=(TaskId const& lhs,
+                                TaskId const& rhs) noexcept
+{
+    return !(lhs == rhs);
+}
 
 bool twister::tasks::operator<(TaskId const& lhs,
                                TaskId const& rhs) noexcept

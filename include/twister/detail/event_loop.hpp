@@ -8,12 +8,17 @@ template<twister::tasks::concepts::AsyncTask T>
 void twister::EventLoop::run(T&& parent) {
     using namespace twister::tasks;
 
-    assert(!current_event_loop_ptr &&
+    assert(!current_event_loop_ptr.load() &&
            "current_event_loop_ptr != nullptr!");
 
-    current_event_loop_ptr = this;
+    current_event_loop_ptr.store(this);
     auto reset_event_loop_ptr = 
-        scope_exit([] { current_event_loop_ptr = nullptr; });
+        scope_exit([] { current_event_loop_ptr.store(nullptr); });
+
+    with_task(event_trigger_task_id_, [=] {
+        event_trigger_.reset();
+        return false;
+    });
 
     TaskId parent_task_id;
     bool result = with_task(parent_task_id, [&] {
@@ -28,10 +33,9 @@ void twister::EventLoop::run(T&& parent) {
 }
 
 template<twister::tasks::concepts::AsyncTask T>
-void twister::spawn(T&& task) {
+void twister::spawn(T&& task, tasks::TaskId new_task_id) {
     using namespace twister;
 
-    tasks::TaskId new_task_id;
     bool result = with_task(new_task_id, [&] {
         return task();
     });

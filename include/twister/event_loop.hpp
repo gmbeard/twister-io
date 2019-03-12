@@ -2,9 +2,11 @@
 #define TWISTER_EVENT_LOOP_HPP_INCLUDED
 
 #include "twister/tasks/concepts.hpp"
+#include "twister/event_trigger.hpp"
 #include "twister/tasks/task_proxy.hpp"
 #include "twister/tasks/task_id.hpp"
 #include "twister/sync_task_queue.hpp"
+#include "twister/sync_task_list.hpp"
 #include <map>
 #include <atomic>
 
@@ -14,6 +16,9 @@ enum class NotifyEvent {
     Read,
     Write
 };
+
+template<tasks::concepts::AsyncTask T>
+void spawn(T&&, tasks::TaskId = tasks::TaskId { });
 
 struct EventLoop {
     EventLoop();
@@ -26,11 +31,13 @@ struct EventLoop {
     void run();
 
     template<tasks::concepts::AsyncTask T>
-    friend void spawn(T&&);
+    friend void spawn(T&&, tasks::TaskId);
 
     friend void notify(NotifyEvent, int);
+    friend void trigger(tasks::TaskId task_id);
 
 private:
+    void drain_trigger_list();
     void try_poll_task(tasks::TaskId task_id);
 
     void enqueue_task(tasks::TaskProxy&&,
@@ -41,17 +48,18 @@ private:
 private:
     int os_event_loop_;
     SyncTaskQueue task_queue_;
+    SyncTaskList trigger_list_;
     std::atomic_size_t in_progress_;
+    EventTrigger event_trigger_;
+    tasks::TaskId event_trigger_task_id_;
 };
 
-extern EventLoop* current_event_loop_ptr;
+extern std::atomic<EventLoop*> current_event_loop_ptr;
 EventLoop& current_event_loop() noexcept;
-
-template<tasks::concepts::AsyncTask T>
-void spawn(T&&);
 
 void notify(NotifyEvent event, int fd);
 
+void trigger(tasks::TaskId task_id);
 }
 
 #include "twister/detail/event_loop.hpp"

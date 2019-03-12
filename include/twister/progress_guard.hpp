@@ -6,12 +6,14 @@
 namespace twister {
 
 struct ProgressGuard {
-    ProgressGuard(std::atomic_size_t& counter) noexcept;
+    ProgressGuard(std::atomic_size_t* counter) noexcept;
     ProgressGuard(ProgressGuard const&) = delete;
     ~ProgressGuard();
     ProgressGuard& operator=(ProgressGuard const&) = delete;
+    void release() noexcept;
 private:
-    std::atomic_size_t& counter_;
+    std::atomic_size_t* counter_;
+    bool released_;
 };
 
 }

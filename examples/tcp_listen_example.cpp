@@ -76,6 +76,25 @@ private:
     twister::io::TcpStream stream_;
 };
 
+struct KeepAlive {
+    KeepAlive() noexcept :
+        done_ { false }
+    { }
+
+    bool operator()() noexcept {
+        auto r = done_;
+        done_ = !done_;
+
+        if (r) {
+            std::cerr << "Keep alive done!\n";
+        }
+        return r;
+    }
+
+private:
+    bool done_;
+};
+
 template<typename T>
 struct ThreadPool {
     explicit ThreadPool(size_t num_of_threads, T&& inner) noexcept :
@@ -83,9 +102,24 @@ struct ThreadPool {
     ,   inner_ { std::move(inner) }
     { }
 
+    ThreadPool(ThreadPool&&) = default; 
+
+    ~ThreadPool() {
+        std::cerr << "ThreadPool done\n";
+
+        for (auto&& t : threads_) {
+            // This check is required because _any_ of these threads
+            // may dispose of _this_ object, meaning one of the
+            // threads in `threads_` may call join on itself!
+            if (t.get_id() != std::this_thread::get_id()) {
+                t.join();
+            }
+        }
+    }
+
     bool operator()() {
-        if (!threads_.size()) {
-            twister::spawn([] { return false; });
+        if (!threads_.size() && thread_count_) {
+            twister::spawn(KeepAlive { }, keep_alive_id_);
 
             for (size_t i = 0; i < thread_count_; ++i) {
                 threads_.emplace_back([] { 
@@ -98,12 +132,17 @@ struct ThreadPool {
             }
         }
 
-        return inner_();
+        if (inner_()) {
+            twister::trigger(keep_alive_id_);
+            return true;
+        }
+        return false;    
     }
 private:
     size_t thread_count_;
     T inner_;
     std::vector<std::thread> threads_;
+    twister::tasks::TaskId keep_alive_id_;
 };
 
 template<typename T>
@@ -111,6 +150,29 @@ auto thread_pool(size_t thread_count, T&& inner) {
     return ThreadPool<std::decay_t<T>> { 
         thread_count,
         std::forward<T>(inner)
+    };
+}
+
+template<twister::io::StreamFactory F>
+auto limited_acceptor(twister::io::TcpListener&& listener,
+                      size_t accept_count,
+                      F&& fact)
+{
+    return [
+        listener=std::move(listener),
+        accept_count,
+        factory=std::forward<F>(fact)
+    ] () mutable {
+        twister::io::TcpStream s;
+        while (accept_count) {
+            if (!listener.accept(s)) {
+                return false;
+            }
+            twister::spawn(factory(std::move(s)));
+            --accept_count;
+        }
+
+        return true;
     };
 }
 
@@ -123,8 +185,10 @@ int main(int argc, char const** argv) {
     loop.run(
         thread_pool(
             10,
-            twister::io::acceptor(
+            limited_acceptor(
+            //twister::io::acceptor(
                 std::move(listener),
+                2,
                 [](auto&& stream) {
                     return EchoHandler { std::move(stream) };
                 }

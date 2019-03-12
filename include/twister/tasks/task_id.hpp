@@ -38,8 +38,8 @@ auto with_task(TaskId id, T&& t) {
     return std::forward<T>(t)();
 }
 
-//bool operator==(TaskId const&, TaskId const&) noexcept;
-//bool operator!=(TaskId const&, TaskId const&) noexcept;
+bool operator==(TaskId const&, TaskId const&) noexcept;
+bool operator!=(TaskId const&, TaskId const&) noexcept;
 bool operator<(TaskId const&, TaskId const&) noexcept;
 //bool operator<=(TaskId const&, TaskId const&) noexcept;
 //bool operator>(TaskId const&, TaskId const&) noexcept;
