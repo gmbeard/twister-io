@@ -1,6 +1,8 @@
 add_executable(
     tcp_listen_example
     tcp_listen_example.cpp
+    echo_handler.cpp
+    keep_alive.cpp
 )
 
 target_compile_options(

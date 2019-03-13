@@ -122,8 +122,8 @@ int create_os_socket_from_ipv4_and_port(char const* address,
         static_cast<uint32_t>(parts[3]);
 
     sockaddr_in sock_addr = { };
-    sock_addr.sin_port = ::htons(port);
-    sock_addr.sin_addr.s_addr = ::htonl(ip_addr);
+    sock_addr.sin_port = htons(port);
+    sock_addr.sin_addr.s_addr = htonl(ip_addr);
 
     err = ::bind(s, 
                  reinterpret_cast<sockaddr*>(&sock_addr), 

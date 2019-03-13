@@ -61,6 +61,7 @@ void EventTrigger::set() noexcept {
     uint8_t byte = 1;
     auto n = ::write(fd_pair_[kWriteEnd], &byte, 1);
     assert(n == 1 && "EventTrigger::set(): couldn't write to pipe!");
+    (void)(n);
 }
 
 void EventTrigger::reset() noexcept {

@@ -20,4 +20,5 @@ void ProgressGuard::release() noexcept {
     released_ = true;
     auto prev = counter_->fetch_sub(1);
     assert(prev > 0 && "ProgressGuard::counter_ == 0!");
+    (void)(prev);
 }
