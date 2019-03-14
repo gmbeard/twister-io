@@ -6,6 +6,18 @@ project(
     VERSION 0.1
 )
 
+option(
+    TWISTER_ENABLE_THREAD_SANITIZER
+    "Enable thread sanitizer for ${PROJECT_NAME}"
+    OFF
+)
+
+option(
+    TWISTER_ENABLE_ADDRESS_SANITIZER
+    "Enable address sanitizer for ${PROJECT_NAME}"
+    OFF
+)
+
 list(
     APPEND 
     CMAKE_MODULE_PATH
@@ -43,6 +55,32 @@ target_compile_options(
     PRIVATE
         -Wall -Werror -Wextra -Wpedantic
 )
+
+if(TWISTER_ENABLE_THREAD_SANITIZER)
+    target_compile_options(
+        twister
+        PUBLIC
+            -fsanitize=thread
+    )
+
+    target_link_libraries(
+        twister
+        PUBLIC tsan
+    )
+endif()
+
+if(TWISTER_ENABLE_ADDRESS_SANITIZER)
+    target_compile_options(
+        twister
+        PUBLIC
+            -fsanitize=address
+    )
+
+    target_link_libraries(
+        twister
+        PUBLIC asan
+    )
+endif()
 
 add_library(Twister::twister ALIAS twister)
 
