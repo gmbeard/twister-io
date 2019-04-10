@@ -120,3 +120,68 @@ auto twister::spawn(T&& task) {
 
 }
 ```
+
+### Non-RPC based servers (E.g. group chat / IRC)
+
+These types of servers require tasks to be awoken by events other than I/O. For example, we have 3 clients `A`, `B`, and `C`, connected via 3 handlers, `hA`, `hB`, `hC`. `hA` is notified of incoming data on its socket, it reads the data and determines that it has recieved a full message object. The message object must now be sent to clients `B` and `C`. `hB` and `hC` would normally only be awoken by activity on their own sockets, so `hA`, which has received the message, must now distribute the message to handlers `hB` and `hC` and somehow *wake* them so that they can perform I/O to their associated clients' connections. 
+
+```
+
+enum class EitherResult {
+    First,
+    Second,
+    Niether
+};
+
+template<AsyncTask First, AsyncTask Second>
+EitherResult either(First&& f, Second&& s) {
+    if (std::forward<First>(f)()) {
+        return EitherResult::First;
+    }
+    else if (std::forward<Second>(s)()) {
+        return EitherResult::Second;
+    }
+
+    return EitherResult::Niether;
+}
+
+struct Message { ... };
+
+struct MessagesFromOtherClients { 
+    bool poll(); 
+private:
+    std::vector<std::shared_ptr<Message>> messages_;
+};
+
+// In handler...
+size_t read = 0;
+Message msg;
+auto r = either(
+    [&read]() {
+        socket.read(); 
+    },
+    [&msg]() {
+        msgs_from_others.poll();
+    }
+);
+
+switch (r) {
+    case EitherResult::First:
+        ...
+        break;
+    case EitherResult::Second:
+        ...
+        break;
+    default:
+        // niether happened
+        break;
+}
+
+if (either.holds_alternative<PolledFirst>()) {
+    // ... Handle socket.read
+}
+else if (either.holds_alternative<PolledSecond>()) {
+    // ... Handle received message from other client
+}
+
+```
